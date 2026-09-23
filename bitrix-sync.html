@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Point 24h · Sincronização de vendas</title>
+<link rel="stylesheet" href="style.css">
+<style>main{max-width:900px;margin:auto}.sync-box{background:#08233e;border:1px solid #3c4b5d;border-radius:12px;padding:24px}#status{white-space:pre-wrap;line-height:1.6}a{display:inline-block;margin-bottom:18px}button:disabled{opacity:.6;cursor:wait}</style>
+</head>
+<body>
+<main>
+<a href="index.html">← Voltar ao painel</a>
+<div class="eyebrow">CRM · Vendas</div><h1>Sincronizar pipeline 0</h1>
+<p class="sub">Importa negócios, etapas, responsáveis e origens do funil “Licenciado Point”. Os pipelines 2 e 4 de condomínios ficam separados. A importação não altera negócios no Bitrix.</p>
+<div class="sync-box">
+<button id="start">Iniciar sincronização</button>
+<p id="status" role="status">Pronto para sincronizar.</p>
+</div>
+<p class="small">Ganhos antigos entram sem vendedor confirmado. O ranking de vendas exigirá o registro do responsável no fechamento.</p>
+</main>
+<script>
+'use strict';
+const API='https://ymezdvuxwtvikhywrugp.supabase.co';
+const KEY='sb_publishable_u29un2hEjw8B2D5Xry5Z5g_uboqLzp2';
+const sessionKey='point_dashboard_session';
+const button=document.querySelector('#start');
+const status=document.querySelector('#status');
+async function refresh(){
+  let session;
+  try{session=JSON.parse(localStorage.getItem(sessionKey)||'null');}catch{session=null;}
+  if(!session?.refresh_token)throw new Error('Entre primeiro no painel usando este navegador.');
+  const response=await fetch(API+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:KEY,'content-type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});
+  if(!response.ok)throw new Error('Sessão vencida. Entre novamente no painel.');
+  session=await response.json();
+  localStorage.setItem(sessionKey,JSON.stringify(session));
+  return session.access_token;
+}
+async function run(){
+  button.disabled=true;
+  let cursor=0,loaded=0,total=null,batches=0;
+  try{
+    const token=await refresh();
+    status.textContent='Consultando o Bitrix e gravando no Supabase…';
+    for(;;){
+      const response=await fetch(API+'/functions/v1/bitrix-sales-sync',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({cursor}),cache:'no-store'});
+      const data=await response.json().catch(()=>({error:'Resposta inválida'}));
+      if(!response.ok)throw new Error(data.detail||data.error||'Falha HTTP '+response.status);
+      if(data.nextCursor<=cursor&&data.loaded)throw new Error('A paginação parou antes do fim.');
+      cursor=data.nextCursor;loaded+=data.loaded;batches++;
+      if(data.reportedTotal!=null)total=data.reportedTotal;
+      status.textContent='Pipeline 0: '+loaded.toLocaleString('pt-BR')+(total==null?'':' de '+total.toLocaleString('pt-BR'))+' negócios sincronizados. '+batches+' lote(s).'+(data.complete?'\nConcluído.':'\nContinuando…');
+      if(data.complete)break;
+      if(batches>=15)throw new Error('Limite de lotes atingido; sincronização parcial.');
+    }
+  }catch(error){status.textContent+='\nInterrompido: '+error.message+'\nÉ seguro iniciar novamente: os dados são atualizados sem duplicação.';}
+  finally{button.disabled=false;button.textContent='Sincronizar novamente';}
+}
+button.addEventListener('click',run);
+</script>
+</body>
+</html>
