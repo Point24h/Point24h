@@ -8,16 +8,17 @@ const status=document.querySelector('#login-status');
 function say(message){status.textContent=message;}
 async function request(path,options={}){
   const headers={apikey:KEY,...options.headers};
-  if(session?.access_token)headers.Authorization='Bearer '+session.access_token;
+  if(session?.access_token&&!path.startsWith('/auth/v1/token'))headers.Authorization='Bearer '+session.access_token;
   const response=await fetch(API+path,{...options,headers,cache:'no-store'});
   const payload=await response.json().catch(()=>null);
-  if(!response.ok)throw new Error(payload?.msg||payload?.message||payload?.error_description||'Falha de comunicação');
+  if(!response.ok){const error=new Error(payload?.msg||payload?.message||payload?.error_description||'Falha de comunicação');error.status=response.status;throw error;}
   return payload;
 }
-function saveSession(value){session=value;sessionStorage.setItem(sessionKey,JSON.stringify(value));}
+function saveSession(value){session=value;localStorage.setItem(sessionKey,JSON.stringify(value));sessionStorage.removeItem(sessionKey);}
+function clearSession(){session=null;localStorage.removeItem(sessionKey);sessionStorage.removeItem(sessionKey);}
 async function refresh(){
   if(!session?.refresh_token)return false;
-  try{const next=await request('/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});saveSession(next);return true;}catch{return false;}
+  try{const next=await request('/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});saveSession(next);return true;}catch(error){if([400,401,403].includes(error.status))clearSession();return false;}
 }
 async function getRows(table,select){
   const all=[];
@@ -55,9 +56,10 @@ document.querySelector('#login-form').addEventListener('submit',async e=>{
   try{
     const next=await request('/auth/v1/token?grant_type=password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
     document.querySelector('#password').value='';saveSession(next);await loadDashboard();
-  }catch(error){say(error.message);session=null;sessionStorage.removeItem(sessionKey);}
+  }catch(error){say(error.message);clearSession();}
 });
-document.querySelector('#logout').addEventListener('click',()=>{sessionStorage.removeItem(sessionKey);location.reload();});
-setInterval(async()=>{if(session&&!(await refresh())){sessionStorage.removeItem(sessionKey);location.reload();}},30*60*1000);
-try{session=JSON.parse(sessionStorage.getItem(sessionKey)||'null');}catch{session=null;}
-if(session)refresh().then(ok=>ok?loadDashboard().catch(e=>say(e.message)):sessionStorage.removeItem(sessionKey));
+document.querySelector('#logout').addEventListener('click',()=>{clearSession();location.reload();});
+setInterval(async()=>{if(!session)return;const ok=await refresh();if(ok||!session)location.reload();},30*60*1000);
+window.addEventListener('online',()=>{if(session)location.reload();});
+try{session=JSON.parse(localStorage.getItem(sessionKey)||sessionStorage.getItem(sessionKey)||'null');}catch{session=null;}
+if(session)refresh().then(ok=>{if(ok)loadDashboard().catch(e=>say(e.message));else say(session?'Sem conexão. O painel tentará novamente.':'Sessão encerrada. Entre novamente.');});
