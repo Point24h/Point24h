@@ -1,9 +1,17 @@
 # Painel Point 24h
 
-Painel de resultados da rede Point, com visão mensal e quinzenal, rankings, produtos, implantações e alertas.
+Painel online da rede Point com visão mensal e quinzenal, rankings de faturamento e produtos, implantações e alertas.
 
-A interface usa autenticação do Supabase e lê somente tabelas liberadas por políticas de acesso. O repositório contém apenas código e o logo público. Faturamentos, cadastro de unidades e credenciais ficam fora do GitHub.
+## Fontes de dados
 
-Para testar localmente, abra `index.html` por um servidor HTTP estático. É necessário usar uma conta confirmada e autorizada no projeto Supabase Point.
+- Faturamentos e produtos: arquivos quinzenais V e P, consolidados no Supabase.
+- Cadastro operacional dos PDVs: planilha compartilhada "Base de licenciados", abas BASE e IMPLANTAÇÃO. A sincronização ocorre diariamente à noite. São importados apenas situação, unidade, cidade/UF, quantidade de moradias ou funcionários, terminais, data de inauguração e datas de implantação.
+- CPF, telefone, e-mail pessoal, endereço e valores de contrato da planilha não entram no painel.
 
-A publicação do site será configurada separadamente, após a revisão do painel.
+O ticket geral por apartamento divide o faturamento somado dos condomínios com vendas e apartamentos cadastrados pela soma de seus apartamentos. Os alertas comparam médias diárias quinzenais e ficam na última página.
+
+## Acesso
+
+A interface usa autenticação do Supabase e políticas de acesso no banco. Cada dispositivo mantém sua própria sessão após o primeiro login; o botão **Sair** encerra a sessão naquele dispositivo. O painel atualiza os dados periodicamente enquanto estiver aberto.
+
+Este repositório público contém apenas código e o logo. Dados financeiros, planilhas e credenciais ficam fora do GitHub.
