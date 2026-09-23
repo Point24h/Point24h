@@ -12,3 +12,32 @@ main{padding-top:20px}.sub{margin-bottom:16px}.panel:has(table){padding:12px 18p
 .locked .controls,.locked footer,#logout{display:none}.locked #view{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 110px)}.login-card{background:#08233e;border:1px solid #3c4b5d;border-radius:15px;padding:34px;width:min(440px,100%)}.login-card h1{font-size:34px}.login-card form{display:grid;gap:11px}.login-card label{font-size:15px;color:#cbd6e4}.login-card input{background:#031126;border:1px solid #566c80;border-radius:7px;padding:12px 14px;color:#fff;font:inherit}.login-card form button{margin-top:12px;background:#45e3f2;color:#031126;font-weight:bold}.login-card p{font-size:14px;color:#cbd6e4}body:not(.locked) #logout{display:inline-block}
 
 .ticket-macro{display:flex;align-items:center;gap:26px;width:max-content;max-width:100%;background:#45e3f2;color:#041b35;border-radius:12px;padding:12px 22px;margin:0 0 14px}.ticket-macro label{font-size:16px;font-weight:700}.ticket-macro strong{font-size:clamp(25px,2.2vw,36px);white-space:nowrap}.ticket-macro small{font-size:14px;color:#164960}@media(max-width:800px){.ticket-macro{display:block}.ticket-macro strong,.ticket-macro small{display:block;margin-top:5px}}
+
+/* Keep every TV slide inside a short browser viewport, including the control bar. */
+@media (max-height:900px){
+  :root{font-size:16px}
+  header{height:auto;min-height:76px;padding:8px 2vw;gap:12px}
+  .brand{font-size:24px;gap:8px;line-height:1}.brand img{width:54px;height:54px}.brand span{font-size:9px}
+  .controls{gap:5px}.controls button,.controls select{font-size:12px;padding:6px 8px}
+  #period{max-width:180px}#screen{max-width:180px}#duration{max-width:110px}
+  main{padding:12px 3vw 6px;min-height:0}
+  .eyebrow{font-size:12px;letter-spacing:1.4px}h1{font-size:clamp(24px,2.5vw,36px);margin:5px 0}
+  h2{font-size:20px;margin-bottom:10px}.sub{font-size:14px;margin:0 0 12px}
+  .panel:has(table){padding:7px 12px}
+  table{font-size:clamp(14px,1.2vw,18px)}
+  th{font-size:11px;padding:6px 8px}td,.compact td,.implementation-list td{padding:6px 8px;line-height:1.1}
+  td small{font-size:11px;margin-top:1px}.rank{width:30px}
+  .small{font-size:12px}.card,.panel{padding:14px}
+  .cards{gap:10px;margin:12px 0}.card label{font-size:14px}.value{font-size:clamp(20px,2.3vw,30px);margin-top:8px}
+  .split{gap:12px}.bars{height:120px;padding-top:10px}
+  .monthly-totals .value{font-size:22px}.month-total{padding:8px}
+  .ticket-macro{padding:8px 12px;margin-bottom:8px}.ticket-macro label{font-size:13px}.ticket-macro strong{font-size:24px}.ticket-macro small{font-size:12px}
+  .implementation-count{padding:8px 14px;margin-bottom:10px}.implementation-count strong{font-size:26px}
+  .opening-columns{height:210px;padding:10px}.column-track{height:130px}.opening-column strong{font-size:26px}.opening-column label{font-size:15px}
+  footer{height:38px;padding:5px 3vw;font-size:12px}footer button{padding:4px 8px;font-size:12px}
+}
+@media (max-width:1100px){
+  header{padding-left:2vw;padding-right:2vw}.controls{gap:4px}
+  .controls button,.controls select{font-size:11px;padding:5px 6px}
+  #period{max-width:155px}#screen{max-width:155px}#duration{max-width:95px}
+}
