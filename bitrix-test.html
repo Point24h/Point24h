@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Point 24h · Teste Bitrix</title>
+<link rel="stylesheet" href="style.css">
+<style>main{max-width:1050px;margin:auto}.test-box{background:#08233e;border:1px solid #3c4b5d;border-radius:12px;padding:24px}pre{white-space:pre-wrap;word-break:break-word;color:#dce9f5;font:15px/1.5 Consolas,monospace}a{display:inline-block;margin-bottom:20px}</style>
+</head>
+<body>
+<main>
+<a href="index.html">← Voltar ao painel</a>
+<div class="eyebrow">Conexão CRM</div><h1>Teste do Bitrix24</h1>
+<p class="sub">Esta consulta apenas lê a configuração e uma contagem de negócios. Não altera cards no Bitrix.</p>
+<div class="test-box"><button id="retry">Testar novamente</button><pre id="result" role="status">Aguardando teste…</pre></div>
+</main>
+<script>
+'use strict';
+const API='https://ymezdvuxwtvikhywrugp.supabase.co';
+const KEY='sb_publishable_u29un2hEjw8B2D5Xry5Z5g_uboqLzp2';
+const sessionKey='point_dashboard_session';
+const output=document.querySelector('#result');
+async function run(){
+  output.textContent='Consultando o Bitrix…';
+  let session;
+  try{session=JSON.parse(localStorage.getItem(sessionKey)||'null');}catch{session=null;}
+  if(!session?.refresh_token){output.textContent='Entre primeiro no painel, usando este mesmo navegador.';return;}
+  try{
+    const refresh=await fetch(API+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:KEY,'content-type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});
+    if(!refresh.ok)throw new Error('Sessão vencida. Volte ao painel e entre novamente.');
+    session=await refresh.json();localStorage.setItem(sessionKey,JSON.stringify(session));
+    const response=await fetch(API+'/functions/v1/bitrix-probe',{headers:{apikey:KEY,Authorization:'Bearer '+session.access_token},cache:'no-store'});
+    const data=await response.json().catch(()=>({error:'Resposta inválida da função'}));
+    output.textContent=JSON.stringify({httpStatus:response.status,...data},null,2);
+  }catch(error){output.textContent='Falha no teste: '+error.message;}
+}
+document.querySelector('#retry').addEventListener('click',run);
+run();
+</script>
+</body>
+</html>
