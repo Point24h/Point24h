@@ -1,0 +1,10 @@
+*.xlsx
+*.xls
+*.csv
+*.tsv
+.env
+.env.*
+**/data.js
+**/*.bak
+**/*.backup
+**/*.inspect.ndjson

@@ -1,1 +1,21 @@
-Teste
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Point 24h · Resultados</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23031126'/%3E%3Ctext x='8' y='25' fill='%2345e3f2' font-size='26'%3EP%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="locked">
+  <header>
+    <div class="brand"><img src="logo-point.png" alt="Point 24h"><div>POINT <b>24h</b><span>REDE · RESULTADOS</span></div></div>
+    <div class="controls"><select id="mode" aria-label="Visão"><option value="monthly">Mensal</option><option value="fortnight">Quinzenal</option></select><select id="period" aria-label="Mês ou quinzena"></select><select id="screen" aria-label="Página do painel"></select><select id="duration" aria-label="Tempo por página"><option value="10">10 segundos</option><option value="20" selected>20 segundos</option><option value="30">30 segundos</option><option value="60">60 segundos</option></select><button id="pause">Pausar</button><button id="full">Tela cheia</button><button id="logout">Sair</button></div>
+  </header>
+  <main id="view"><section class="login-card"><div class="eyebrow">Acesso Point</div><h1>Entrar no painel</h1><form id="login-form"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username" required placeholder="Seu e-mail"><label for="password">Senha</label><input id="password" type="password" autocomplete="current-password" required><button type="submit">Entrar</button></form><p id="login-status" role="status">Use sua conta confirmada no Supabase.</p></section></main>
+  <footer><span id="meta"></span><div><button id="prev" aria-label="Página anterior">←</button><span id="page"></span><button id="next" aria-label="Próxima página">→</button></div></footer>
+  <div id="progress"></div>
+  <script src="boot.js"></script>
+</body>
+</html>
