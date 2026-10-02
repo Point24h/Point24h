@@ -4,8 +4,8 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <title>Point 24h · Sincronização de vendas</title>
-<link rel="stylesheet" href="style.css">
-<style>main{max-width:900px;margin:auto}.sync-box{background:#08233e;border:1px solid #3c4b5d;border-radius:12px;padding:24px}#status{white-space:pre-wrap;line-height:1.6}a{display:inline-block;margin-bottom:18px}button:disabled{opacity:.6;cursor:wait}</style>
+<link rel="stylesheet" href="style.css?v=20261002">
+<style>main{max-width:900px;margin:auto}.sync-box{background:#08233e;border:1px solid #3c4b5d;border-radius:12px;padding:24px}#status{white-space:pre-wrap;line-height:1.6}.preview{margin-top:24px}.preview table{font-size:16px}.preview td{overflow-wrap:anywhere}.sync-actions{display:flex;gap:12px;flex-wrap:wrap}.preview .cards{grid-template-columns:repeat(2,minmax(0,1fr))}a{display:inline-block;margin-bottom:18px}button:disabled{opacity:.6;cursor:wait}</style>
 </head>
 <body>
 <main>
@@ -13,49 +13,90 @@
 <div class="eyebrow">CRM · Vendas</div><h1>Sincronizar pipeline 0</h1>
 <p class="sub">Importa negócios, etapas, responsáveis e origens do funil “Licenciado Point”. Os pipelines 2 e 4 de condomínios ficam separados. A importação não altera negócios no Bitrix.</p>
 <div class="sync-box">
-<button id="start">Iniciar sincronização</button>
+<div class="sync-actions"><button id="start">Sincronizar vendas</button><button id="restart" hidden>Recomeçar do início</button></div>
 <p id="status" role="status">Pronto para sincronizar.</p>
 </div>
 <p class="small">Ganhos antigos entram sem vendedor confirmado. O ranking de vendas exigirá o registro do responsável no fechamento.</p>
+<section id="preview" class="preview" aria-live="polite"></section>
 </main>
 <script>
 'use strict';
 const API='https://ymezdvuxwtvikhywrugp.supabase.co';
 const KEY='sb_publishable_u29un2hEjw8B2D5Xry5Z5g_uboqLzp2';
-const sessionKey='point_dashboard_session';
-const button=document.querySelector('#start');
-const status=document.querySelector('#status');
+const sessionKey='point_dashboard_session',checkpointKey='point_sales_sync_cursor_v2';
+const button=document.querySelector('#start'),status=document.querySelector('#status'),restart=document.querySelector('#restart');
+let session=null,busy=false,checkpoint=null;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+function saveCheckpoint(v){checkpoint=v;try{if(v)localStorage.setItem(checkpointKey,JSON.stringify(v));else localStorage.removeItem(checkpointKey);}catch{}restart.hidden=!v;}
 async function refresh(){
-  let session;
-  try{session=JSON.parse(localStorage.getItem(sessionKey)||'null');}catch{session=null;}
-  if(!session?.refresh_token)throw new Error('Entre primeiro no painel usando este navegador.');
-  const response=await fetch(API+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:KEY,'content-type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});
-  if(!response.ok)throw new Error('Sessão vencida. Entre novamente no painel.');
-  session=await response.json();
-  localStorage.setItem(sessionKey,JSON.stringify(session));
-  return session.access_token;
+ try{session=JSON.parse(localStorage.getItem(sessionKey)||'null');}catch{session=null;}
+ if(!session?.refresh_token)throw new Error('Entre primeiro no painel usando este navegador.');
+ const response=await fetch(API+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:KEY,'content-type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token}),signal:AbortSignal.timeout(30000)});
+ if(!response.ok)throw new Error('Sessão vencida. Entre novamente no painel.');
+ session=await response.json();localStorage.setItem(sessionKey,JSON.stringify(session));return session.access_token;
+}
+async function request(path,options={}){
+ if(!session||session.expires_at*1000<Date.now()+60000)await refresh();
+ const response=await fetch(API+path,{...options,headers:{apikey:KEY,Authorization:'Bearer '+session.access_token,...options.headers},cache:'no-store',signal:AbortSignal.timeout(90000)});
+ const data=await response.json().catch(()=>({error:'Resposta inválida'}));
+ if(!response.ok)throw new Error(data.detail||data.message||data.error||'Falha HTTP '+response.status);
+ return data;
+}
+async function rows(table,select,order,filter=''){
+ const result=[];for(let offset=0;;offset+=1000){const page=await request('/rest/v1/'+table+'?select='+encodeURIComponent(select)+'&order='+order+'&limit=1000&offset='+offset+filter);result.push(...page);if(page.length<1000)return result;}
+}
+function table(title,headers,items){return '<h2>'+esc(title)+'</h2><div class="panel"><table><thead><tr>'+headers.map(s=>'<th>'+esc(s)+'</th>').join('')+'</tr></thead><tbody>'+items.map(row=>'<tr>'+row.map(s=>'<td>'+esc(s)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';}
+async function preview(){
+ const [deals,stages,users,sources,wins]=await Promise.all([
+ rows('crm_deals','bitrix_id,stage_id,status,amount,currency,current_owner_id,source_id,synced_at','bitrix_id','&pipeline_id=eq.0'),
+ rows('crm_stages','stage_id,stage_name,sort_order','sort_order','&pipeline_id=eq.0'),
+ rows('crm_users','bitrix_id,display_name','bitrix_id'),
+ rows('crm_sources','source_id,source_name','source_id'),
+ rows('crm_wins','deal_id,owner_at_win_id,amount_at_win,currency,owner_verified','deal_id')
+ ]);
+ const root=document.querySelector('#preview');if(!deals.length){root.innerHTML='<p class="notice">A primeira carga de vendas ainda não foi concluída. Clique em Sincronizar vendas.</p>';return;}
+ const won=deals.filter(d=>d.status==='won'),brl=won.filter(d=>d.currency==='BRL');
+ const closed=deals.filter(d=>d.status==='won'||d.status==='lost');
+ const name=id=>users.find(u=>String(u.bitrix_id)===String(id))?.display_name||('Responsável '+(id??'não informado'));
+ const amounts=list=>money(list.filter(d=>d.currency==='BRL').reduce((s,d)=>s+Number(d.amount||0),0));
+ const group=key=>{const map=new Map();for(const d of deals){const id=d[key]??'';if(!map.has(id))map.set(id,[]);map.get(id).push(d);}return [...map].sort((a,b)=>b[1].length-a[1].length);};
+ const verified=wins.filter(w=>w.owner_verified&&w.owner_at_win_id&&w.currency==='BRL'&&won.some(d=>String(d.bitrix_id)===String(w.deal_id)));
+ const ranking=new Map();for(const w of verified)ranking.set(w.owner_at_win_id,(ranking.get(w.owner_at_win_id)||0)+Number(w.amount_at_win));
+ const latest=deals.map(d=>d.synced_at).sort().at(-1);
+ root.innerHTML='<h2>Vendas · Pipeline 0</h2><p class="sub">Estado atual dos negócios importados · todos os períodos. Última gravação: '+esc(new Date(latest).toLocaleString('pt-BR'))+'.</p>'+
+ '<div class="cards"><div class="card"><label>Valor atual dos contratos ganhos</label><div class="value">'+amounts(brl)+'</div><p class="small">Somente BRL · etapa de ganho</p></div><div class="card"><label>Leads / negócios cadastrados</label><div class="value">'+deals.length.toLocaleString('pt-BR')+'</div></div><div class="card"><label>Negócios em andamento</label><div class="value">'+deals.filter(d=>d.status==='open').length+'</div></div><div class="card"><label>Conversão dos encerrados</label><div class="value">'+(closed.length?(100*won.length/closed.length).toFixed(1).replace('.',',')+'%':'—')+'</div><p class="small">Ganhos ÷ (ganhos + perdidos)</p></div></div>'+
+ (checkpoint?'<p class="notice">Carga incompleta. Os números abaixo ainda são parciais; retome a sincronização.</p>':'')+
+ table('Etapas do funil',['Etapa','Negócios','Valor atual (BRL)'],stages.map(s=>{const list=deals.filter(d=>d.stage_id===s.stage_id);return [s.stage_name,list.length,amounts(list)];}))+
+ table('Responsáveis atuais pela carteira',['Responsável','Negócios','Valor atual (BRL)'],group('current_owner_id').map(([id,list])=>[name(id),list.length,amounts(list)]))+
+ table('Origem dos negócios',['Origem','Negócios','Ganhos'],group('source_id').map(([id,list])=>[sources.find(s=>s.source_id===id)?.source_name||id||'Não informada',list.length,list.filter(d=>d.status==='won').length]))+
+ (ranking.size?table('Ranking por responsável no fechamento',['Vendedor','Valor confirmado (BRL)'],[...ranking].sort((a,b)=>b[1]-a[1]).map(([id,value])=>[name(id),money(value)])):'<h2>Ranking por vendedor</h2><p class="notice">Ainda não há responsáveis confirmados no momento do fechamento. A carteira acima mostra o responsável atual, e não atribui retroativamente as vendas.</p>')+
+ '<p class="small">'+(won.length-verified.length)+' ganhos sem atribuição confirmada neste ranking. Valores históricos importados refletem o cadastro atual do contrato.</p>';
 }
 async function run(){
-  button.disabled=true;
-  let cursor=0,loaded=0,total=null,batches=0;
-  try{
-    const token=await refresh();
-    status.textContent='Consultando o Bitrix e gravando no Supabase…';
-    for(;;){
-      const response=await fetch(API+'/functions/v1/bitrix-sales-sync',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({cursor}),cache:'no-store'});
-      const data=await response.json().catch(()=>({error:'Resposta inválida'}));
-      if(!response.ok)throw new Error(data.detail||data.error||'Falha HTTP '+response.status);
-      if(data.nextCursor<=cursor&&data.loaded)throw new Error('A paginação parou antes do fim.');
-      cursor=data.nextCursor;loaded+=data.loaded;batches++;
-      if(data.reportedTotal!=null)total=data.reportedTotal;
-      status.textContent='Pipeline 0: '+loaded.toLocaleString('pt-BR')+(total==null?'':' de '+total.toLocaleString('pt-BR'))+' negócios sincronizados. '+batches+' lote(s).'+(data.complete?'\nConcluído.':'\nContinuando…');
-      if(data.complete)break;
-      if(batches>=15)throw new Error('Limite de lotes atingido; sincronização parcial.');
-    }
-  }catch(error){status.textContent+='\nInterrompido: '+error.message+'\nÉ seguro iniciar novamente: os dados são atualizados sem duplicação.';}
-  finally{button.disabled=false;button.textContent='Sincronizar novamente';}
+ if(busy)return;busy=true;button.disabled=true;restart.disabled=true;
+ try{
+ await refresh();
+ if(checkpoint&&checkpoint.userId!==session.user.id)saveCheckpoint(null);
+ let cursor=checkpoint?.cursor||0,loaded=checkpoint?.loaded||0,total=checkpoint?.total??null;
+ status.textContent='Consultando vendas do pipeline 0…';
+ for(;;){
+  const data=await request('/functions/v1/bitrix-sales-sync',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({cursor})});
+  if(!Number.isSafeInteger(data.nextCursor)||data.nextCursor<cursor||(data.nextCursor===cursor&&!data.complete))throw new Error('A paginação não avançou.');
+  cursor=data.nextCursor;loaded+=data.loaded;if(data.reportedTotal!=null)total=data.reportedTotal;
+  saveCheckpoint(data.complete?null:{userId:session.user.id,cursor,loaded,total});
+  status.textContent='Pipeline 0: '+loaded.toLocaleString('pt-BR')+(total==null?'':' de aproximadamente '+total.toLocaleString('pt-BR'))+' negócios processados.'+(data.complete?'\nSincronização concluída.':'\nContinuando… Você pode retomar se houver interrupção.');
+  if(data.complete)break;
+ }
+ await preview();
+ }catch(error){status.textContent+='\nInterrompido: '+error.message+'\nClique novamente para retomar com segurança.';}
+ finally{busy=false;button.disabled=false;restart.disabled=false;button.textContent=checkpoint?'Retomar sincronização':'Sincronizar vendas';}
 }
-button.addEventListener('click',run);
+button.addEventListener('click',run);restart.addEventListener('click',()=>{saveCheckpoint(null);run();});
+(async()=>{
+ try{await refresh();try{checkpoint=JSON.parse(localStorage.getItem(checkpointKey)||'null');}catch{}if(checkpoint?.userId!==session.user.id)checkpoint=null;restart.hidden=!checkpoint;button.textContent=checkpoint?'Retomar sincronização':'Sincronizar vendas';await preview();}
+ catch(error){status.textContent=error.message+' Use o link Voltar ao painel para entrar e retorne a esta página.';}
+})();
 </script>
 </body>
 </html>

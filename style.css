@@ -41,3 +41,40 @@ main{padding-top:20px}.sub{margin-bottom:16px}.panel:has(table){padding:12px 18p
   .controls button,.controls select{font-size:11px;padding:5px 6px}
   #period{max-width:155px}#screen{max-width:155px}#duration{max-width:95px}
 }
+
+/* Reserve the header, content and footer before measuring each TV slide. */
+.control-link{font-size:12px;padding:6px 8px;border:1px solid #526074;border-radius:7px;text-decoration:none;white-space:nowrap}
+body.tv-dashboard{height:100vh;height:100dvh;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden;padding:clamp(6px,.8vmin,14px)}
+.tv-dashboard header{height:auto;min-height:64px;padding:8px 1.5vw;gap:16px}
+.tv-dashboard .brand{flex-shrink:0;font-size:24px;letter-spacing:0}
+.tv-dashboard .brand img{width:52px;height:52px}
+.tv-dashboard .controls{min-width:0;gap:5px}
+.tv-dashboard main{height:100%;min-height:0;min-width:0;overflow:hidden;padding:14px 2vw 8px;position:relative}
+.slide-flow{transform-origin:top left;display:flow-root}
+.tv-dashboard footer{height:auto;min-height:36px;padding:5px 2vw;font-size:12px}
+.tv-dashboard .cards{grid-template-columns:1.65fr 1.4fr 1fr 1fr;gap:12px;margin:16px 0}
+.tv-dashboard .value{white-space:normal;overflow-wrap:anywhere}
+.tv-dashboard table{font-size:clamp(17px,1.55vw,29px)}
+.tv-dashboard td{padding:10px 12px;line-height:1.25;overflow-wrap:anywhere}
+.tv-dashboard .compact td,.tv-dashboard .implementation-list td{padding:9px 12px;font-size:clamp(16px,1.4vw,25px)}
+.tv-dashboard .implementation-list td:nth-child(n+3){white-space:normal}
+.tv-dashboard .panel,.tv-dashboard .card{min-width:0}
+.tv-dashboard .monthly-totals{grid-template-columns:repeat(3,minmax(0,1fr))}
+.tv-dashboard .ticket-macro{width:100%;flex-wrap:wrap;gap:8px 24px}
+.tv-dashboard .opening-columns{height:clamp(170px,30vh,340px);gap:18px}
+.tv-dashboard .column-track{flex:1;min-height:60px}
+.tv-dashboard .opening-column{min-width:0}
+.tv-dashboard .opening-column label{font-size:clamp(14px,1.4vw,22px)}
+.tv-dashboard.presentation header{min-height:54px}
+.tv-dashboard.presentation .controls>*:not(#tv-mode){display:none!important}
+.tv-dashboard.presentation .brand img{width:40px;height:40px}
+.tv-dashboard.presentation .brand span{display:none}
+.tv-dashboard.presentation #tv-mode{font-size:12px;opacity:.7}
+@media(max-width:800px){
+ .tv-dashboard .brand{font-size:18px}.tv-dashboard .brand img{width:40px;height:40px}
+ .tv-dashboard .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .tv-dashboard .split{grid-template-columns:1.4fr 1fr}
+ .tv-dashboard .monthly-totals{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .tv-dashboard .ticket-macro{display:flex}
+ .tv-dashboard table,.tv-dashboard .compact td{font-size:15px}
+}
