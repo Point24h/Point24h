@@ -8,11 +8,12 @@ function channel(d){
  if(!d.attribution_synced_at)return 'Aguardando rastreamento';
  const source=norm(d.utm_source),medium=norm(d.utm_medium);
  const paid=/^(cpc|ppc|cpm|paid|paid[_ -]?(social|search)|social[_ -]?paid|display)$/.test(medium);
- const meta=/^(meta|facebook|fb|instagram|ig|facebook\.com|instagram\.com|m\.facebook\.com|l\.facebook\.com)$/.test(source);
+ const meta=/^(meta|meta_ads|facebook_ads|facebook|fb|instagram|ig|facebook\.com|instagram\.com|m\.facebook\.com|l\.facebook\.com)$/.test(source);
  const google=/^(google|googleads|google_ads|adwords|google\.com|google\.com\.br)$/.test(source);
  if(/^(organic|organico|organic[_ -]?(search|social))$/.test(medium))return 'Orgânico';
- if(meta)return paid?'Meta Ads':'Meta · mídia não identificada';
- if(google)return paid?'Google Ads':'Google · mídia não identificada';
+ if(meta)return paid||/^(meta_ads|facebook_ads)$/.test(source)?'Meta Ads':'Meta · mídia não identificada';
+ if(google)return paid||/^(googleads|google_ads|adwords)$/.test(source)?'Google Ads':'Google · mídia não identificada';
+ if(source==='chatgpt.com'||source==='chatgpt')return 'ChatGPT';
  if(['RECOMMENDATION','4'].includes(d.source_id))return 'Indicação';
  if(source)return 'Outros canais rastreados';
  return 'Não identificado';
