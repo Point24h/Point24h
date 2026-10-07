@@ -21,7 +21,7 @@ function channel(d){
 
 function calc(data,key,now=new Date()){
 const today=day(now),deals=data.deals.filter(d=>String(d.pipeline_id)==='0'),wm=new Map(data.wins.map(w=>[String(w.deal_id),w]));
-const won=deals.filter(d=>d.status==='won'&&d.currency==='BRL').map(d=>{const w=wm.get(String(d.bitrix_id));return {...d,date:day(w?.won_at),owner:w?.owner_verified&&w.owner_at_win_id!=null?String(w.owner_at_win_id):null};}).filter(d=>d.date);
+const won=deals.filter(d=>d.status==='won'&&d.currency==='BRL').map(d=>{const w=wm.get(String(d.bitrix_id));return {...d,date:day(w?.won_at),owner:d.current_owner_id!=null&&Number(d.current_owner_id)>0?String(d.current_owner_id):null};}).filter(d=>d.date);
 const month=k=>won.filter(d=>d.date.startsWith(k)),current=month(key),previous=prev(key),prior=month(previous),total=sum(current),priorTotal=sum(prior),sameTotal=sum(prior.filter(d=>+d.date.slice(8)<=+today.slice(8)));
 const ids=[...new Set([...deals.map(d=>d.current_owner_id),...won.map(d=>d.owner)].filter(x=>x!=null).map(String))];
 const sellers=ids.map(id=>({id,name:data.users.find(u=>String(u.bitrix_id)===id)?.display_name||'Vendedor '+id,amount:sum(current.filter(d=>d.owner===id))})).sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name));
