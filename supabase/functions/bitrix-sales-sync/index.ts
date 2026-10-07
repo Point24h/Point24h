@@ -61,7 +61,7 @@ Deno.serve(async(req)=>{
     let lastId=cursor,pages=0,complete=false;
     const deals=[],wins=[];
     for(let i=0;i<8;i++){
-      const response=await call("crm.deal.list",{filter:{CATEGORY_ID:0,">ID":lastId},order:{ID:"ASC"},select:["ID","CATEGORY_ID","STAGE_ID","STAGE_SEMANTIC_ID","OPPORTUNITY","CURRENCY_ID","ASSIGNED_BY_ID","SOURCE_ID","DATE_CREATE","DATE_MODIFY","MOVED_TIME"],start:-1});
+      const response=await call("crm.deal.list",{filter:{CATEGORY_ID:0,">ID":lastId},order:{ID:"ASC"},select:["ID","CATEGORY_ID","STAGE_ID","STAGE_SEMANTIC_ID","OPPORTUNITY","CURRENCY_ID","ASSIGNED_BY_ID","SOURCE_ID","UTM_SOURCE","UTM_MEDIUM","UTM_CAMPAIGN","DATE_CREATE","DATE_MODIFY","MOVED_TIME"],start:-1});
       const rows=Array.isArray(response.result)?response.result:[];
       const before=lastId;
       for(const r of rows){
@@ -76,7 +76,7 @@ Deno.serve(async(req)=>{
         const sem=r.STAGE_SEMANTIC_ID||stageMap[stage];
         if(!["P","S","F"].includes(sem))throw new Error("unknown_stage_semantics");
         const status=sem==="S"?"won":sem==="F"?"lost":"open";
-        deals.push({bitrix_id:id,pipeline_id:"0",stage_id:stage,status,amount:value,currency:r.CURRENCY_ID||"BRL",current_owner_id:ownerId,source_id:r.SOURCE_ID||null,created_at_bitrix:r.DATE_CREATE,updated_at_bitrix:r.DATE_MODIFY||null,last_activity_at:r.MOVED_TIME||null,synced_at:now});
+        deals.push({bitrix_id:id,pipeline_id:"0",stage_id:stage,status,amount:value,currency:r.CURRENCY_ID||"BRL",current_owner_id:ownerId,source_id:r.SOURCE_ID||null,utm_source:r.UTM_SOURCE||null,utm_medium:r.UTM_MEDIUM||null,utm_campaign:r.UTM_CAMPAIGN||null,attribution_synced_at:now,created_at_bitrix:r.DATE_CREATE,updated_at_bitrix:r.DATE_MODIFY||null,last_activity_at:r.MOVED_TIME||null,synced_at:now});
         if(status==="won")wins.push({deal_id:id,won_at:r.MOVED_TIME||r.DATE_MODIFY||r.DATE_CREATE,owner_at_win_id:null,amount_at_win:value??0,currency:r.CURRENCY_ID||"BRL",evidence_source:"bitrix_current_state_backfill",owner_verified:false});
       }
       pages++;
