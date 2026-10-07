@@ -48,7 +48,8 @@ async function loadDashboard(){
   window.POINT_DATA={updated:new Date().toISOString(),periods:[...byPeriod.values()],registry,control:registry,terminals:terminals.filter(r=>r.pdv_id).map(r=>({ponto:r.point_id,pdv_id:r.pdv_id})),unmatchedSales:[...new Set(terminals.filter(r=>!r.pdv_id).map(r=>r.name_in_sales).filter(Boolean))]};
   document.body.classList.remove('locked');
   document.querySelector('#view').replaceChildren();
-  const script=document.createElement('script');script.src='app.js?v=20261002';document.body.append(script);
+  const script=document.createElement('script');script.src='app.js?v=20261007-commercial';document.body.append(script);
+  window.PointCommercial.start({request,refresh,getSession:()=>session});
 }
 document.querySelector('#login-form').addEventListener('submit',async e=>{
   e.preventDefault();say('Entrando…');
