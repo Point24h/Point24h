@@ -8,9 +8,17 @@ const won=deals.filter(d=>d.status==='won'&&d.currency==='BRL').map(d=>{const w=
 const month=k=>won.filter(d=>d.date.startsWith(k)),current=month(key),previous=prev(key),prior=month(previous),total=sum(current),priorTotal=sum(prior),sameTotal=sum(prior.filter(d=>+d.date.slice(8)<=+today.slice(8)));
 const ids=[...new Set([...deals.map(d=>d.current_owner_id),...won.map(d=>d.owner)].filter(x=>x!=null).map(String))];
 const sellers=ids.map(id=>({id,name:data.users.find(u=>String(u.bitrix_id)===id)?.display_name||'Vendedor '+id,amount:sum(current.filter(d=>d.owner===id))})).sort((a,b)=>b.amount-a.amount||a.name.localeCompare(b.name));
-const open=deals.filter(d=>d.status==='open'),stages=data.stages.filter(s=>Number(s.sort_order)<100||open.some(d=>d.stage_id===s.stage_id)).sort((a,b)=>a.sort_order-b.sort_order).map(s=>({...s,count:open.filter(d=>d.stage_id===s.stage_id).length}));
+const monthlyDeals=deals.filter(d=>day(d.created_at_bitrix).startsWith(key)),open=monthlyDeals.filter(d=>d.status==='open');
+const groups=[
+{stage_name:'Novo lead',ids:['NEW','PREPARATION','PREPAYMENT_INVOICE','EXECUTING']},
+{stage_name:'Contato realizado',ids:['FINAL_INVOICE','UC_VIJU3P']},
+{stage_name:'Follow-up',ids:['UC_XWNJ6W','UC_A0KX4J','UC_NQR30F']}
+];
+const stages=groups.map(g=>({stage_name:g.stage_name,count:open.filter(d=>g.ids.includes(d.stage_id)).length}));
+stages.push({stage_name:'Ganho',count:monthlyDeals.filter(d=>d.status==='won').length});
+const lost=monthlyDeals.filter(d=>d.status==='lost').length,other=open.filter(d=>!groups.some(g=>g.ids.includes(d.stage_id))).length;
 const leads=deals.filter(d=>day(d.created_at_bitrix).startsWith(key)),origin=new Map();for(const d of leads){const id=d.source_id||'';if(!origin.has(id))origin.set(id,{id,name:data.sources.find(s=>s.source_id===id)?.source_name||id||'Sem origem',count:0});origin.get(id).count++;}
-return {key,today,previous,total,priorTotal,sameTotal,currentMonth:key===today.slice(0,7),delta:change(total,priorTotal),sameDelta:change(total,sameTotal),yearTotal:sum(won.filter(d=>d.date.startsWith(key.slice(0,4)))),sellers,pending:sum(current.filter(d=>!d.owner)),zero:current.filter(d=>Number(d.amount)===0).length,stages,open:open.length,leads:leads.length,origins:[...origin.values()].sort((a,b)=>b.count-a.count),months:Array.from({length:12},(_,i)=>{const k=key.slice(0,4)+'-'+String(i+1).padStart(2,'0');return {key:k,total:sum(month(k)),future:k>today.slice(0,7)};})};
+return {key,today,previous,total,priorTotal,sameTotal,currentMonth:key===today.slice(0,7),delta:change(total,priorTotal),sameDelta:change(total,sameTotal),yearTotal:sum(won.filter(d=>d.date.startsWith(key.slice(0,4)))),sellers,pending:sum(current.filter(d=>!d.owner)),zero:current.filter(d=>Number(d.amount)===0).length,stages,lost,other,open:open.length,leads:leads.length,origins:[...origin.values()].sort((a,b)=>b.count-a.count),months:Array.from({length:12},(_,i)=>{const k=key.slice(0,4)+'-'+String(i+1).padStart(2,'0');return {key:k,total:sum(month(k)),future:k>today.slice(0,7)};})};
 }
 return {day,prev,calc};
 })();
